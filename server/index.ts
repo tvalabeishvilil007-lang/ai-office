@@ -68,7 +68,7 @@ if (IS_PROD) {
   app.use(express.static(distPath));
 
   // SPA fallback — React Router handles all non-API routes
-  app.get('*', (_req, res) => {
+  app.get(/.*/, (_req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
