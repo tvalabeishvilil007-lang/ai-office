@@ -5,25 +5,36 @@
 /* ── Base reset ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
-html, body, #root {
+html {
   height: 100%;
-  margin: 0;
-  padding: 0;
+  height: -webkit-fill-available;
 }
 
 body {
+  height: 100%;
+  min-height: -webkit-fill-available;
   font-family: 'Inter', system-ui, sans-serif;
   background: #07090f;
   color: #e2e8f0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
+  /* Prevent pull-to-refresh on iOS */
+  overscroll-behavior-y: none;
 }
 
 #root {
   width: 100%;
   max-width: 100%;
   text-align: left;
+  height: 100dvh;
+}
+
+/* Prevent iOS Safari zoom on input focus */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, select {
+    font-size: max(16px, 1em);
+  }
 }
 
 /* ── Scrollbar ──────────────────────────────────────────── */
