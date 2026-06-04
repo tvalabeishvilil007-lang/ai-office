@@ -1,0 +1,466 @@
+﻿import type { Agent } from '../types';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI Office — Agent Roster
+// Extensible: add new agents here without touching any UI component.
+// Future: load from API / marketplace with this shape as contract.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const AGENTS: Agent[] = [
+  // ── 1. Юрист — FEATURED / CENTRAL AGENT ──────────────────────────────────
+  {
+    id: 'lawyer-georgia',
+    slug: 'lawyer-georgia',
+    name: 'Юрист',
+    title: 'Главный юридический советник',
+    category: 'legal',
+    status: 'active',
+    tier: 'core',
+    isFeatured: true,
+    avatar: '⚖️',
+    accentColor: '#f59e0b',
+    glowColor: 'rgba(245,158,11,0.35)',
+    skills: [
+      { id: 's1', label: 'Корпоративное право' },
+      { id: 's2', label: 'Регистрация компаний' },
+      { id: 's3', label: 'Трудовые договоры' },
+      { id: 's4', label: 'Due Diligence' },
+      { id: 's5', label: 'Налоговое право Грузии' },
+    ],
+    description:
+      'Эксперт по грузинскому законодательству. Регистрация бизнеса, договоры, налоговая оптимизация и корпоративное право.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.9,
+  },
+
+  // ── 2. Бизнес-ассистент ────────────────────────────────────────────────────
+  {
+    id: 'business-assistant',
+    slug: 'business-assistant',
+    name: 'Бизнес-ассистент',
+    title: 'Персональный бизнес-ассистент',
+    category: 'business',
+    status: 'active',
+    tier: 'core',
+    isFeatured: false,
+    avatar: '💼',
+    accentColor: '#3b82f6',
+    glowColor: 'rgba(59,130,246,0.30)',
+    skills: [
+      { id: 's1', label: 'Планирование встреч' },
+      { id: 's2', label: 'Бизнес-планы' },
+      { id: 's3', label: 'Переговоры' },
+      { id: 's4', label: 'Координация проектов' },
+    ],
+    description:
+      'Управляет расписанием, координирует команду, готовит деловую документацию и анализирует KPI.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.8,
+  },
+
+  // ── 3. Финансы ─────────────────────────────────────────────────────────────
+  {
+    id: 'finance',
+    slug: 'finance',
+    name: 'Финансы',
+    title: 'Финансовый директор',
+    category: 'finance',
+    status: 'busy',
+    tier: 'core',
+    isFeatured: false,
+    avatar: '📊',
+    accentColor: '#10b981',
+    glowColor: 'rgba(16,185,129,0.30)',
+    skills: [
+      { id: 's1', label: 'Финансовый анализ' },
+      { id: 's2', label: 'P&L отчёты' },
+      { id: 's3', label: 'Бюджетирование' },
+      { id: 's4', label: 'Налоговая оптимизация' },
+      { id: 's5', label: 'Инвестиции' },
+    ],
+    description:
+      'Ведёт финансовую отчётность, анализирует прибыльность и строит инвестиционные модели.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.9,
+  },
+
+  // ── 4. Маркетинг ───────────────────────────────────────────────────────────
+  {
+    id: 'marketing',
+    slug: 'marketing',
+    name: 'Маркетинг',
+    title: 'Директор по маркетингу',
+    category: 'marketing',
+    status: 'active',
+    tier: 'core',
+    isFeatured: false,
+    avatar: '📣',
+    accentColor: '#ec4899',
+    glowColor: 'rgba(236,72,153,0.28)',
+    skills: [
+      { id: 's1', label: 'SMM стратегия' },
+      { id: 's2', label: 'Контент-маркетинг' },
+      { id: 's3', label: 'SEO / SEM' },
+      { id: 's4', label: 'Аналитика' },
+    ],
+    description:
+      'Разрабатывает маркетинговые стратегии, управляет брендом и запускает рекламные кампании.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.7,
+  },
+
+  // ── 5. Исследователь ───────────────────────────────────────────────────────
+  {
+    id: 'researcher',
+    slug: 'researcher',
+    name: 'Исследователь',
+    title: 'Аналитик-исследователь',
+    category: 'research',
+    status: 'active',
+    tier: 'core',
+    isFeatured: false,
+    avatar: '🔬',
+    accentColor: '#8b5cf6',
+    glowColor: 'rgba(139,92,246,0.30)',
+    skills: [
+      { id: 's1', label: 'Исследование рынка' },
+      { id: 's2', label: 'Конкурентный анализ' },
+      { id: 's3', label: 'Data Mining' },
+      { id: 's4', label: 'Аналитические отчёты' },
+    ],
+    description:
+      'Проводит глубокий анализ рынка, изучает конкурентов и предоставляет инсайты для стратегии.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.8,
+  },
+
+  // ── 6. Sales ───────────────────────────────────────────────────────────────
+  {
+    id: 'sales',
+    slug: 'sales',
+    name: 'Sales',
+    title: 'Руководитель отдела продаж',
+    category: 'sales',
+    status: 'busy',
+    tier: 'core',
+    isFeatured: false,
+    avatar: '🎯',
+    accentColor: '#f97316',
+    glowColor: 'rgba(249,115,22,0.28)',
+    skills: [
+      { id: 's1', label: 'CRM управление' },
+      { id: 's2', label: 'Воронка продаж' },
+      { id: 's3', label: 'Cold outreach' },
+      { id: 's4', label: 'Переговоры' },
+      { id: 's5', label: 'Скрипты продаж' },
+    ],
+    description:
+      'Управляет воронкой продаж, автоматизирует outreach и закрывает сделки.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.9,
+  },
+
+  // ── 7. Недвижимость ────────────────────────────────────────────────────────
+  {
+    id: 'realestate',
+    slug: 'realestate',
+    name: 'Недвижимость',
+    title: 'Эксперт по недвижимости',
+    category: 'realestate',
+    status: 'idle',
+    tier: 'premium',
+    isFeatured: false,
+    avatar: '🏢',
+    accentColor: '#0ea5e9',
+    glowColor: 'rgba(14,165,233,0.28)',
+    skills: [
+      { id: 's1', label: 'Анализ объектов' },
+      { id: 's2', label: 'Инвестиции в недвижимость' },
+      { id: 's3', label: 'Договоры аренды' },
+      { id: 's4', label: 'Рынок Грузии' },
+    ],
+    description:
+      'Анализирует рынок недвижимости, помогает с выбором объектов и инвестиционными решениями.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.6,
+  },
+
+  // ── 8. Личный ассистент ────────────────────────────────────────────────────
+  {
+    id: 'personal-assistant',
+    slug: 'personal-assistant',
+    name: 'Личный ассистент',
+    title: 'Персональный помощник',
+    category: 'personal',
+    status: 'active',
+    tier: 'core',
+    isFeatured: false,
+    avatar: '🤝',
+    accentColor: '#6366f1',
+    glowColor: 'rgba(99,102,241,0.30)',
+    skills: [
+      { id: 's1', label: 'Управление временем' },
+      { id: 's2', label: 'Личные задачи' },
+      { id: 's3', label: 'Travel planning' },
+      { id: 's4', label: 'Напоминания' },
+    ],
+    description:
+      'Берёт на себя личные задачи, планирует поездки и управляет личным расписанием.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.7,
+  },
+
+  // ── 10. HR-директор ───────────────────────────────────────────────────────
+  {
+    id: 'hr',
+    slug: 'hr',
+    name: 'HR-директор',
+    title: 'Директор по персоналу',
+    category: 'hr',
+    status: 'active',
+    tier: 'premium',
+    isFeatured: false,
+    avatar: '👥',
+    accentColor: '#14b8a6',
+    glowColor: 'rgba(20,184,166,0.28)',
+    skills: [
+      { id: 's1', label: 'Найм и рекрутинг' },
+      { id: 's2', label: 'HR-политики' },
+      { id: 's3', label: 'Онбординг' },
+      { id: 's4', label: 'Трудовое право Грузии' },
+      { id: 's5', label: 'Performance review' },
+    ],
+    description: 'Выстраивает HR-процессы, ищет и нанимает лучших сотрудников, разрабатывает политики мотивации.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.7,
+  },
+
+  // ── 11. IT-директор ────────────────────────────────────────────────────────
+  {
+    id: 'it-manager',
+    slug: 'it-manager',
+    name: 'IT-директор',
+    title: 'Chief Information Officer',
+    category: 'tech',
+    status: 'active',
+    tier: 'premium',
+    isFeatured: false,
+    avatar: '💻',
+    accentColor: '#7c3aed',
+    glowColor: 'rgba(124,58,237,0.28)',
+    skills: [
+      { id: 's1', label: 'Инфраструктура' },
+      { id: 's2', label: 'Кибербезопасность' },
+      { id: 's3', label: 'Автоматизация' },
+      { id: 's4', label: 'AI-инструменты' },
+      { id: 's5', label: 'SaaS-подбор' },
+    ],
+    description: 'Управляет IT-инфраструктурой, внедряет автоматизацию и защищает данные компании.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.8,
+  },
+
+  // ── 12. Копирайтер ─────────────────────────────────────────────────────────
+  {
+    id: 'copywriter',
+    slug: 'copywriter',
+    name: 'Копирайтер',
+    title: 'Ведущий копирайтер',
+    category: 'marketing',
+    status: 'idle',
+    tier: 'premium',
+    isFeatured: false,
+    avatar: '✍️',
+    accentColor: '#d946ef',
+    glowColor: 'rgba(217,70,239,0.28)',
+    skills: [
+      { id: 's1', label: 'Продающие тексты' },
+      { id: 's2', label: 'Контент для соцсетей' },
+      { id: 's3', label: 'Email-воронки' },
+      { id: 's4', label: 'SEO-статьи' },
+      { id: 's5', label: 'UX-копирайтинг' },
+    ],
+    description: 'Создаёт продающие тексты для лендингов, рекламы, соцсетей и email-рассылок.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.8,
+  },
+
+  // ── 13. PR-менеджер ────────────────────────────────────────────────────────
+  {
+    id: 'pr-manager',
+    slug: 'pr-manager',
+    name: 'PR-менеджер',
+    title: 'Директор по PR',
+    category: 'marketing',
+    status: 'active',
+    tier: 'premium',
+    isFeatured: false,
+    avatar: '📡',
+    accentColor: '#f43f5e',
+    glowColor: 'rgba(244,63,94,0.28)',
+    skills: [
+      { id: 's1', label: 'Пресс-релизы' },
+      { id: 's2', label: 'Управление репутацией' },
+      { id: 's3', label: 'Антикризисный PR' },
+      { id: 's4', label: 'Медиа-коммуникации' },
+    ],
+    description: 'Управляет репутацией бренда, выстраивает отношения со СМИ и кризисные коммуникации.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.6,
+  },
+
+  // ── 14. Бухгалтер ─────────────────────────────────────────────────────────
+  {
+    id: 'accountant',
+    slug: 'accountant',
+    name: 'Бухгалтер',
+    title: 'Главный бухгалтер',
+    category: 'finance',
+    status: 'busy',
+    tier: 'premium',
+    isFeatured: false,
+    avatar: '🧾',
+    accentColor: '#16a34a',
+    glowColor: 'rgba(22,163,74,0.28)',
+    skills: [
+      { id: 's1', label: 'Первичная документация' },
+      { id: 's2', label: 'Налоги Грузии (RS.GE)' },
+      { id: 's3', label: 'Расчёт зарплат' },
+      { id: 's4', label: 'Бухгалтерский учёт' },
+    ],
+    description: 'Ведёт первичный учёт, готовит налоговую отчётность и рассчитывает зарплаты по ТК Грузии.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.9,
+  },
+
+  // ── 15. Бизнес-коуч ────────────────────────────────────────────────────────
+  {
+    id: 'coach',
+    slug: 'coach',
+    name: 'Бизнес-коуч',
+    title: 'Исполнительный коуч',
+    category: 'business',
+    status: 'idle',
+    tier: 'premium',
+    isFeatured: false,
+    avatar: '🏆',
+    accentColor: '#ca8a04',
+    glowColor: 'rgba(202,138,4,0.28)',
+    skills: [
+      { id: 's1', label: 'Лидерство' },
+      { id: 's2', label: 'Личная эффективность' },
+      { id: 's3', label: 'OKR и цели' },
+      { id: 's4', label: 'Антивыгорание' },
+      { id: 's5', label: 'Стратегическое мышление' },
+    ],
+    description: 'Развивает лидерские качества, повышает продуктивность и помогает достигать стратегических целей.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.8,
+  },
+
+  // ── 16. Тех. директор ──────────────────────────────────────────────────────
+  {
+    id: 'developer',
+    slug: 'developer',
+    name: 'Тех. директор',
+    title: 'Chief Technology Officer',
+    category: 'tech',
+    status: 'active',
+    tier: 'premium',
+    isFeatured: false,
+    avatar: '👨‍💻',
+    accentColor: '#06b6d4',
+    glowColor: 'rgba(6,182,212,0.28)',
+    skills: [
+      { id: 's1', label: 'Архитектура систем' },
+      { id: 's2', label: 'Веб-разработка' },
+      { id: 's3', label: 'AI-интеграции' },
+      { id: 's4', label: 'DevOps' },
+      { id: 's5', label: 'Code review' },
+    ],
+    description: 'Проектирует архитектуру, выбирает стек технологий и решает сложные технические задачи.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.9,
+  },
+
+  // ── 17. Операционный директор ──────────────────────────────────────────────
+  {
+    id: 'operations',
+    slug: 'operations',
+    name: 'Опер. директор',
+    title: 'Chief Operations Officer',
+    category: 'operations',
+    status: 'idle',
+    tier: 'premium',
+    isFeatured: false,
+    avatar: '🚛',
+    accentColor: '#65a30d',
+    glowColor: 'rgba(101,163,13,0.28)',
+    skills: [
+      { id: 's1', label: 'Бизнес-процессы' },
+      { id: 's2', label: 'Логистика' },
+      { id: 's3', label: 'Supply chain' },
+      { id: 's4', label: 'Lean / Six Sigma' },
+      { id: 's5', label: 'Закупки' },
+    ],
+    description: 'Оптимизирует операционные процессы, управляет логистикой и снижает затраты.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.7,
+  },
+
+  // ── 9. Receptionist / Administrator ────────────────────────────────────────
+  {
+    id: 'receptionist',
+    slug: 'receptionist',
+    name: 'Администратор',
+    title: 'Администратор офиса',
+    category: 'personal',
+    status: 'active',
+    tier: 'core',
+    isFeatured: false,
+    avatar: '👩‍💼',
+    accentColor: '#10b981',
+    glowColor: 'rgba(16,185,129,0.28)',
+    skills: [
+      { id: 's1', label: 'Приём посетителей' },
+      { id: 's2', label: 'Документооборот' },
+      { id: 's3', label: 'Координация' },
+      { id: 's4', label: 'Поддержка клиентов' },
+    ],
+    description:
+      'Встречает посетителей, управляет входящими запросами и координирует работу офиса.',
+    tasksCompleted: 0,
+    activeTaskCount: 0,
+    rating: 4.9,
+  },
+];
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+export const getFeaturedAgent = (): Agent =>
+  AGENTS.find((a) => a.isFeatured) ?? AGENTS[0];
+
+export const getAgentById = (id: string): Agent | undefined =>
+  AGENTS.find((a) => a.id === id);
+
+export const getAgentBySlug = (slug: string): Agent | undefined =>
+  AGENTS.find((a) => a.slug === slug);
+
+export const getSupportingAgents = (): Agent[] =>
+  AGENTS.filter((a) => !a.isFeatured);
