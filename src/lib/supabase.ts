@@ -9,19 +9,15 @@ import { createClient } from '@supabase/supabase-js';
 // Express server environment, never here.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL  as string;
-const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-
-if (!supabaseUrl || !supabaseAnon) {
-  console.warn(
-    '[supabase] VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY not set. ' +
-    'Auth and DB features will not work until you add them to .env',
-  );
-}
+// These are PUBLIC values — safe to expose in the browser.
+// VITE_ vars are baked in at build time; the fallbacks ensure prod works
+// even if the build environment doesn't forward them.
+const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL  || 'https://lsbfgeceymkckbbxdktq.supabase.co';
+const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_eDf0lBRnHPtRtv_uKf-joQ_u68BzI1z';
 
 export const supabase = createClient(
-  supabaseUrl  ?? 'https://placeholder.supabase.co',
-  supabaseAnon ?? 'placeholder-anon-key',
+  supabaseUrl,
+  supabaseAnon,
   {
     auth: {
       persistSession: true,
