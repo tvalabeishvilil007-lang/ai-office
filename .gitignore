@@ -15,6 +15,7 @@ dist-server
 
 # Environment — API keys must never be committed
 .env
+.env.production.local
 
 # Editor directories and files
 .vscode/*
