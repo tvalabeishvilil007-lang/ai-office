@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "concurrently \"vite\" \"tsx watch server/index.ts\" --names FE,BE --prefix-colors cyan,yellow",
     "dev:client": "vite",
