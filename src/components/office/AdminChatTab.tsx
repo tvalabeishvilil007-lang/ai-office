@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, MessageSquare, ArrowLeft, Circle, User } from 'lucide-react';
+// v2
 import { useAuth } from '../../contexts/AuthContext';
 import {
   useAdminChat,
