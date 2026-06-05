@@ -12,7 +12,7 @@ export const AGENTS: Agent[] = [
     id: 'lawyer-georgia',
     slug: 'lawyer-georgia',
     name: 'Юрист',
-    title: 'Главный юридический советник',
+    title: 'Юридический советник СНГ',
     category: 'legal',
     status: 'active',
     tier: 'core',
