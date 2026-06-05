@@ -2,58 +2,52 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MessageSquare,
-  ListTodo,
-  FileText,
-  Brain,
-  GraduationCap,
-  ArrowLeft,
-  Star,
-  CheckCircle2,
-  Zap,
+  ArrowLeft, Star, CheckCircle2, Zap,
+  Settings2, X, FileText, Brain, GraduationCap,
+  PanelRightOpen, PanelRightClose,
 } from 'lucide-react';
-import { useAgents } from '../../contexts/AgentManagerContext';
+import { useAgents }      from '../../contexts/AgentManagerContext';
 import { useAgentStatus } from '../../contexts/AgentStatusContext';
-import { useCountUp } from '../../hooks/useCountUp';
-import { Sidebar } from '../../components/layout/Sidebar';
-import { Topbar } from '../../components/layout/Topbar';
-import { MobileNav } from '../../components/layout/MobileNav';
+import { useCountUp }     from '../../hooks/useCountUp';
+import { Sidebar }        from '../../components/layout/Sidebar';
+import { Topbar }         from '../../components/layout/Topbar';
+import { MobileNav }      from '../../components/layout/MobileNav';
 import { OfficeBackground } from '../../components/office/OfficeBackground';
-import { Avatar } from '../../components/ui/Avatar';
-import { StatusBadge } from '../../components/ui/Badge';
-import { Button } from '../../components/ui/Button';
-import { AgentTabChat      } from '../../components/agent/AgentTabChat';
-import { AgentTabTasks     } from '../../components/agent/AgentTabTasks';
-import { AgentTabDocuments } from '../../components/agent/AgentTabDocuments';
-import { AgentTabMemory    } from '../../components/agent/AgentTabMemory';
-import { AgentTabTraining  } from '../../components/agent/AgentTabTraining';
+import { Avatar }         from '../../components/ui/Avatar';
+import { StatusBadge }    from '../../components/ui/Badge';
+import { Button }         from '../../components/ui/Button';
+import { AgentTabChat }       from '../../components/agent/AgentTabChat';
+import { AgentTabTasks }      from '../../components/agent/AgentTabTasks';
+import { AgentTabDocuments }  from '../../components/agent/AgentTabDocuments';
+import { AgentTabMemory }     from '../../components/agent/AgentTabMemory';
+import { AgentTabTraining }   from '../../components/agent/AgentTabTraining';
 import { cn } from '../../utils/cn';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AgentPage — individual agent workspace
-// Tabs: Chat | Tasks | Documents | Memory | Training
+// AgentPage — simplified split view: chat (left) + tasks (right)
+// Advanced panel slides in for Docs / Memory / Training
 // ─────────────────────────────────────────────────────────────────────────────
 
-type TabId = 'chat' | 'tasks' | 'documents' | 'memory' | 'training';
+type AdvancedTab = 'documents' | 'memory' | 'training';
 
-const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: 'chat',      label: 'Чат',         icon: <MessageSquare  size={14} /> },
-  { id: 'tasks',     label: 'Задачи',      icon: <ListTodo       size={14} /> },
-  { id: 'documents', label: 'Документы',   icon: <FileText       size={14} /> },
-  { id: 'memory',    label: 'Память',      icon: <Brain          size={14} /> },
-  { id: 'training',  label: 'Обучение',    icon: <GraduationCap  size={14} /> },
+const ADVANCED_TABS: { id: AdvancedTab; label: string; icon: React.ReactNode }[] = [
+  { id: 'documents', label: 'Документы', icon: <FileText      size={13} /> },
+  { id: 'memory',    label: 'Память',    icon: <Brain         size={13} /> },
+  { id: 'training',  label: 'Обучение',  icon: <GraduationCap size={13} /> },
 ];
 
 export function AgentPage() {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabId>('chat');
+  const navigate  = useNavigate();
 
   const { getBySlug } = useAgents();
-  const agent = getBySlug(slug ?? '');
-  const liveStatus = useAgentStatus(agent?.id ?? '');
+  const agent         = getBySlug(slug ?? '');
+  const liveStatus    = useAgentStatus(agent?.id ?? '');
 
-  // Inject agent accent color as CSS custom property → all child elements can use var(--agent-accent)
+  const [showTasks,    setShowTasks]    = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [advancedTab,  setAdvancedTab]  = useState<AdvancedTab>('documents');
+
   useEffect(() => {
     if (!agent) return;
     document.documentElement.style.setProperty('--agent-accent', agent.accentColor);
@@ -64,21 +58,17 @@ export function AgentPage() {
     };
   }, [agent?.accentColor, agent?.glowColor]);
 
-  // Animated counters for quick stats
   const tasksDisplay  = useCountUp(agent?.tasksCompleted  ?? 0, { duration: 900, delay: 300 });
   const activeDisplay = useCountUp(agent?.activeTaskCount ?? 0, { duration: 700, delay: 400 });
   const ratingDisplay = useCountUp(agent?.rating          ?? 0, { duration: 800, delay: 350, decimals: 1 });
 
-  // ── 404 fallback ──────────────────────────────────────────────────────────
   if (!agent) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#07090f] text-slate-400">
         <div className="text-center">
           <p className="text-4xl mb-4">🤖</p>
           <p className="text-lg font-semibold text-slate-300 mb-2">Агент не найден</p>
-          <Button variant="glass" size="sm" onClick={() => navigate('/')}>
-            Вернуться в офис
-          </Button>
+          <Button variant="glass" size="sm" onClick={() => navigate('/')}>Вернуться в офис</Button>
         </div>
       </div>
     );
@@ -86,158 +76,202 @@ export function AgentPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#07090f]">
-      {/* ── Sidebar ────────────────────────────────────────────────────────── */}
       <Sidebar />
 
-      {/* ── Main column ────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Topbar title={agent.name} />
 
         <div className="flex-1 relative overflow-hidden">
-          {/* Background (subtler on agent page) */}
-          <div className="opacity-50">
-            <OfficeBackground />
-          </div>
+          <div className="opacity-50"><OfficeBackground /></div>
 
-          {/* Content */}
           <div className="absolute inset-0 z-10 flex flex-col overflow-hidden">
 
-            {/* ── Agent header bar ─────────────────────────────────────── */}
+            {/* ── Header ──────────────────────────────────────────────────── */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35 }}
-              className={cn(
-                'shrink-0 flex items-center gap-4 px-6 py-4',
-                'border-b border-white/[0.05]',
-                'bg-black/20 backdrop-blur-xl',
-              )}
+              className="shrink-0 flex items-center gap-3 px-4 md:px-6 py-3 border-b border-white/[0.05] bg-black/20 backdrop-blur-xl"
             >
-              {/* Back button */}
               <Button
-                variant="ghost"
-                size="xs"
+                variant="ghost" size="xs"
                 leftIcon={<ArrowLeft size={13} />}
                 onClick={() => navigate('/')}
-                className="text-slate-500 hover:text-slate-300 mr-1"
+                className="text-slate-500 hover:text-slate-300"
               >
                 Офис
               </Button>
-
-              {/* Divider */}
               <div className="h-5 w-px bg-white/[0.08]" />
 
-              {/* Agent identity */}
               <Avatar
-                emoji={agent.avatar}
-                name={agent.name}
-                accentColor={agent.accentColor}
-                glowColor={agent.glowColor}
-                size="md"
-                status={liveStatus}
-                isFeatured={agent.isFeatured}
+                emoji={agent.avatar} name={agent.name}
+                accentColor={agent.accentColor} glowColor={agent.glowColor}
+                size="md" status={liveStatus} isFeatured={agent.isFeatured}
               />
-
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base font-bold text-white leading-none">{agent.name}</h2>
-                  {agent.isFeatured && (
-                    <Star size={12} fill="currentColor" style={{ color: agent.accentColor }} />
-                  )}
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-sm font-bold text-white">{agent.name}</h2>
+                  {agent.isFeatured && <Star size={11} fill="currentColor" style={{ color: agent.accentColor }} />}
                 </div>
-                <p className="text-xs mt-0.5" style={{ color: agent.accentColor }}>
-                  {agent.title}
-                </p>
+                <p className="text-[11px]" style={{ color: agent.accentColor }}>{agent.title}</p>
               </div>
 
-              {/* Quick stats — animated on mount */}
-              <div className="hidden md:flex items-center gap-4 text-xs text-slate-500">
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 size={12} className="text-emerald-400" />
-                  <span className="text-slate-400 font-medium tabular-nums">{tasksDisplay}</span> выполнено
+              {/* Stats */}
+              <div className="hidden md:flex items-center gap-3 text-xs text-slate-500">
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 size={11} className="text-emerald-400" />
+                  <span className="text-slate-400 font-medium">{tasksDisplay}</span>
                 </span>
                 {agent.activeTaskCount > 0 && (
-                  <span className="flex items-center gap-1.5">
-                    <Zap size={12} className="text-blue-400" />
-                    <span className="text-slate-400 font-medium tabular-nums">{activeDisplay}</span> активных
+                  <span className="flex items-center gap-1">
+                    <Zap size={11} className="text-blue-400" />
+                    <span className="text-slate-400 font-medium">{activeDisplay}</span>
                   </span>
                 )}
-                <span className="flex items-center gap-1.5">
-                  <Star size={12} className="text-amber-400" fill="currentColor" />
-                  <span className="text-slate-400 font-medium tabular-nums">{ratingDisplay}</span>
+                <span className="flex items-center gap-1">
+                  <Star size={11} className="text-amber-400" fill="currentColor" />
+                  <span className="text-slate-400 font-medium">{ratingDisplay}</span>
                 </span>
               </div>
 
               <StatusBadge status={liveStatus} />
+
+              {/* Toggle task panel */}
+              <button
+                onClick={() => setShowTasks(v => !v)}
+                title={showTasks ? 'Скрыть задачи' : 'Показать задачи'}
+                className={cn(
+                  'p-1.5 rounded-lg transition-all',
+                  showTasks
+                    ? 'text-white bg-white/[0.08]'
+                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.05]',
+                )}
+              >
+                {showTasks ? <PanelRightClose size={15} /> : <PanelRightOpen size={15} />}
+              </button>
+
+              {/* Advanced settings */}
+              <button
+                onClick={() => setShowAdvanced(v => !v)}
+                title="Документы, память, обучение"
+                className={cn(
+                  'p-1.5 rounded-lg transition-all',
+                  showAdvanced
+                    ? 'text-white bg-white/[0.08]'
+                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.05]',
+                )}
+              >
+                <Settings2 size={15} />
+              </button>
             </motion.div>
 
-            {/* ── Tab bar ──────────────────────────────────────────────── */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-              className={cn(
-                'shrink-0 flex items-center gap-1 px-3 py-2',
-                'border-b border-white/[0.05] bg-black/10',
-                'overflow-x-auto',
-              )}
-              style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
-            >
-              {TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap shrink-0',
-                    'transition-all duration-200',
-                    activeTab === tab.id
-                      ? 'text-white bg-white/[0.08] border border-white/[0.10]'
-                      : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]',
-                  )}
-                >
-                  <span
-                    className="transition-colors"
-                    style={activeTab === tab.id ? { color: agent.accentColor } : {}}
+            {/* ── Body ────────────────────────────────────────────────────── */}
+            <div className="flex-1 flex overflow-hidden">
+
+              {/* ── Chat (always visible) ─────────────────────────────────── */}
+              <div className="flex-1 min-w-0 overflow-hidden p-3 md:p-4">
+                <AgentTabChat agent={agent} />
+              </div>
+
+              {/* ── Tasks panel (toggle) ───────────────────────────────────── */}
+              <AnimatePresence initial={false}>
+                {showTasks && (
+                  <motion.div
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 340, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                    className="shrink-0 overflow-hidden border-l border-white/[0.05]"
+                    style={{ background: 'rgba(4,6,14,0.60)' }}
                   >
-                    {tab.icon}
-                  </span>
-                  <span className="hidden sm:inline">{tab.label}</span>
-
-                  {/* Active indicator */}
-                  {activeTab === tab.id && (
-                    <motion.div
-                      layoutId="tab-underline"
-                      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full"
-                      style={{ background: agent.accentColor }}
-                    />
-                  )}
-                </button>
-              ))}
-            </motion.div>
-
-            {/* ── Tab content ──────────────────────────────────────────── */}
-            <div className="flex-1 overflow-hidden p-4">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="h-full"
-                >
-                  {activeTab === 'chat'      && <AgentTabChat      agent={agent} />}
-                  {activeTab === 'tasks'     && <AgentTabTasks     agent={agent} />}
-                  {activeTab === 'documents' && <AgentTabDocuments agent={agent} />}
-                  {activeTab === 'memory'    && <AgentTabMemory    agent={agent} />}
-                  {activeTab === 'training'  && <AgentTabTraining  agent={agent} />}
-                </motion.div>
+                    <div className="w-[340px] h-full p-3 md:p-4 overflow-hidden">
+                      <AgentTabTasks agent={agent} />
+                    </div>
+                  </motion.div>
+                )}
               </AnimatePresence>
-            </div>
 
+              {/* ── Advanced panel (slide-over) ────────────────────────────── */}
+              <AnimatePresence>
+                {showAdvanced && (
+                  <>
+                    {/* Backdrop */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 z-20 bg-black/40"
+                      onClick={() => setShowAdvanced(false)}
+                    />
+
+                    {/* Drawer */}
+                    <motion.div
+                      initial={{ x: '100%' }}
+                      animate={{ x: 0 }}
+                      exit={{ x: '100%' }}
+                      transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                      className="absolute right-0 top-0 bottom-0 z-30 w-full max-w-lg flex flex-col"
+                      style={{
+                        background: '#0a0f1e',
+                        borderLeft: '1px solid rgba(255,255,255,0.08)',
+                      }}
+                    >
+                      {/* Drawer header */}
+                      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] shrink-0">
+                        <span className="text-sm font-semibold text-slate-200 flex-1">Расширенные функции</span>
+                        {/* Tab switcher */}
+                        <div className="flex items-center gap-1">
+                          {ADVANCED_TABS.map(tab => (
+                            <button
+                              key={tab.id}
+                              onClick={() => setAdvancedTab(tab.id)}
+                              className={cn(
+                                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                                advancedTab === tab.id
+                                  ? 'text-white bg-white/[0.10] border border-white/[0.12]'
+                                  : 'text-slate-500 hover:text-slate-300',
+                              )}
+                            >
+                              {tab.icon}
+                              <span className="hidden sm:inline">{tab.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => setShowAdvanced(false)}
+                          className="ml-2 p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/[0.05] transition-all"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+
+                      {/* Drawer content */}
+                      <div className="flex-1 overflow-hidden p-4">
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={advancedTab}
+                            initial={{ opacity: 0, x: 12 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -12 }}
+                            transition={{ duration: 0.15 }}
+                            className="h-full"
+                          >
+                            {advancedTab === 'documents' && <AgentTabDocuments agent={agent} />}
+                            {advancedTab === 'memory'    && <AgentTabMemory    agent={agent} />}
+                            {advancedTab === 'training'  && <AgentTabTraining  agent={agent} />}
+                          </motion.div>
+                        </AnimatePresence>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+
+            </div>
           </div>
         </div>
       </div>
+
       <MobileNav />
     </div>
   );
