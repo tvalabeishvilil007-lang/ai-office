@@ -126,9 +126,10 @@ tasksRouter.post('/task/execute', async (req: Request, res: Response) => {
       ? `Задача: ${title}\n\nОписание: ${description}\n\nВыполни эту задачу максимально конкретно и структурированно. Дай готовый результат, а не план.`
       : `Задача: ${title}\n\nВыполни эту задачу максимально конкретно и структурированно. Дай готовый результат, а не план.`;
 
-    let result  = '';
-    let charCnt = 0;
-    const MAX_CHARS = 3600; // ~4096 tokens ≈ 3600 chars
+    let result           = '';
+    let charCnt          = 0;
+    let lastDbProgress   = 5;
+    const MAX_CHARS      = 3600;
 
     const stream = client.messages.stream({
       model:      'claude-sonnet-4-6',
@@ -143,8 +144,17 @@ tasksRouter.post('/task/execute', async (req: Request, res: Response) => {
         result  += chunk;
         charCnt += chunk.length;
         emit(res, { type: 'chunk', text: chunk });
+
         const progress = Math.min(90, 5 + Math.round((charCnt / MAX_CHARS) * 85));
         emit(res, { type: 'progress', value: progress });
+
+        // Write progress to Supabase every 25% so TaskList shows real state
+        if (admin && progress - lastDbProgress >= 25) {
+          lastDbProgress = progress;
+          admin.from('tasks').update({
+            progress, updated_at: new Date().toISOString(),
+          }).eq('id', taskId).then(() => {});
+        }
       }
     }
 
