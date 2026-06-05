@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Activity } from 'lucide-react';
+import { MessageSquare, Activity, Headphones } from 'lucide-react';
 import { Sidebar        } from '../../components/layout/Sidebar';
 import { Topbar         } from '../../components/layout/Topbar';
 import { MobileNav      } from '../../components/layout/MobileNav';
@@ -9,8 +9,10 @@ import { OfficeScene    } from '../../components/office/OfficeScene';
 import { TaskList       } from '../../components/office/TaskList';
 import { OfficeChat     } from '../../components/office/OfficeChat';
 import { ActivityPanel  } from '../../components/office/ActivityPanel';
+import { AdminChatTab   } from '../../components/office/AdminChatTab';
 import { QuickTaskModal } from '../../components/office/QuickTaskModal';
 import { OnboardingModal, shouldShowOnboarding } from '../../components/ui/OnboardingModal';
+import { useAdminChat   } from '../../hooks/useAdminChat';
 import { cn } from '../../utils/cn';
 import type { Agent } from '../../types';
 
@@ -18,15 +20,15 @@ import type { Agent } from '../../types';
 // OfficePage — immersive AI office dashboard
 // ─────────────────────────────────────────────────────────────────────────────
 
-type BottomTab = 'chat' | 'activity';
+type BottomTab = 'chat' | 'activity' | 'support';
 
 export function OfficePage() {
   const navigate = useNavigate();
   const [tab,           setTab]           = useState<BottomTab>('chat');
   const [showWelcome,   setShowWelcome]   = useState(false);
   const [showQuickTask, setShowQuickTask] = useState(false);
+  const { unread, clearUnread }           = useAdminChat();
 
-  // Show onboarding on first visit OR when "?" button triggers it
   useEffect(() => {
     if (shouldShowOnboarding()) setShowWelcome(true);
     function onTour() { setShowWelcome(true); }
@@ -35,6 +37,11 @@ export function OfficePage() {
   }, []);
 
   const handleOpen = (agent: Agent) => navigate(`/agent/${agent.slug}`);
+
+  const handleSupportTab = () => {
+    setTab('support');
+    clearUnread();
+  };
 
   return (
     <>
@@ -69,7 +76,7 @@ export function OfficePage() {
                 <TaskList onAddTask={() => setShowQuickTask(true)} />
               </div>
 
-              {/* Chat / Activity — tabbed */}
+              {/* Tabs */}
               <div className="flex-1 flex flex-col min-w-0 h-full">
                 <div className="flex items-center gap-1 mb-2.5 shrink-0">
                   <BottomTabBtn
@@ -84,6 +91,13 @@ export function OfficePage() {
                     label="Активность"
                     onClick={() => setTab('activity')}
                   />
+                  <BottomTabBtn
+                    active={tab === 'support'}
+                    icon={<Headphones size={12} />}
+                    label="Поддержка"
+                    badge={unread > 0 ? unread : undefined}
+                    onClick={handleSupportTab}
+                  />
                 </div>
                 <div className="flex-1 min-h-0">
                   <AnimatePresence mode="wait">
@@ -95,7 +109,9 @@ export function OfficePage() {
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.12 }}
                     >
-                      {tab === 'chat' ? <OfficeChat /> : <ActivityPanel />}
+                      {tab === 'chat'     && <OfficeChat />}
+                      {tab === 'activity' && <ActivityPanel />}
+                      {tab === 'support'  && <AdminChatTab />}
                     </motion.div>
                   </AnimatePresence>
                 </div>
@@ -126,18 +142,19 @@ export function OfficePage() {
 // ── Internal tab button ───────────────────────────────────────────────────────
 
 function BottomTabBtn({
-  active, icon, label, onClick,
+  active, icon, label, badge, onClick,
 }: {
-  active: boolean;
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
+  active:   boolean;
+  icon:     React.ReactNode;
+  label:    string;
+  badge?:   number;
+  onClick:  () => void;
 }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium',
+        'relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium',
         'transition-all duration-200',
         active
           ? 'bg-white/[0.08] text-white border border-white/[0.12]'
@@ -146,6 +163,11 @@ function BottomTabBtn({
     >
       {icon}
       {label}
+      {badge != null && badge > 0 && (
+        <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] rounded-full bg-indigo-500 text-[8px] font-bold text-white flex items-center justify-center px-0.5">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
     </button>
   );
 }
