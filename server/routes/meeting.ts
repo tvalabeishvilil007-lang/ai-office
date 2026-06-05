@@ -326,7 +326,7 @@ ${priorContext}
         model:    'claude-sonnet-4-6',
         system:   systemPrompt,
         messages: [{ role: 'user', content: userTopic }],
-        max_tokens: 1200,
+        max_tokens: 3000,
       });
 
       for await (const event of stream) {

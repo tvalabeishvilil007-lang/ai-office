@@ -116,6 +116,11 @@ tasksRouter.post('/task/execute', async (req: Request, res: Response) => {
     return;
   }
 
+  // Keepalive ping every 20s — prevents Railway/nginx from closing idle SSE connections
+  const keepalive = setInterval(() => {
+    try { res.write(': keepalive\n\n'); } catch { /* connection already closed */ }
+  }, 20_000);
+
   try {
     const taskPrompt = description?.trim()
       ? `Задача: ${title}\n\nОписание: ${description}\n\nВыполни эту задачу максимально конкретно и структурированно. Дай готовый результат, а не план.`
@@ -123,12 +128,13 @@ tasksRouter.post('/task/execute', async (req: Request, res: Response) => {
 
     let result  = '';
     let charCnt = 0;
+    const MAX_CHARS = 3600; // ~4096 tokens ≈ 3600 chars
 
     const stream = client.messages.stream({
       model:      'claude-sonnet-4-6',
       system:     systemPrompt,
       messages:   [{ role: 'user', content: taskPrompt }],
-      max_tokens: 1500,
+      max_tokens: 4096,
     });
 
     for await (const event of stream) {
@@ -137,11 +143,12 @@ tasksRouter.post('/task/execute', async (req: Request, res: Response) => {
         result  += chunk;
         charCnt += chunk.length;
         emit(res, { type: 'chunk', text: chunk });
-        // Smooth progress 5 → 90 based on output length (assume ~1500 chars avg)
-        const progress = Math.min(90, 5 + Math.round((charCnt / 1500) * 85));
+        const progress = Math.min(90, 5 + Math.round((charCnt / MAX_CHARS) * 85));
         emit(res, { type: 'progress', value: progress });
       }
     }
+
+    clearInterval(keepalive);
 
     if (admin) {
       await admin.from('tasks').update({
@@ -153,6 +160,7 @@ tasksRouter.post('/task/execute', async (req: Request, res: Response) => {
     res.end();
 
   } catch (err) {
+    clearInterval(keepalive);
     const msg = err instanceof Error ? err.message : 'Unknown error';
     console.error('[task/execute]', msg);
     if (admin) {
