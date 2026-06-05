@@ -28,16 +28,23 @@ interface AttachedFile {
 }
 
 // ── Task intent detection ─────────────────────────────────────────────────────
+// Triggers on action verbs OR on any substantive message (>60 chars)
 const TASK_VERBS = [
   'сделай','составь','напиши','проанализируй','найди','подготовь',
   'создай','разработай','проверь','оцени','исследуй','изучи',
   'рассчитай','посчитай','сформируй','реши','подбери','сравни',
-  'переведи','суммаризуй','подготовь','нужно сделать','нужен','нужна',
+  'переведи','суммаризуй','нужно сделать','нужен','нужна',
+  'как сделать','как составить','как получить','как открыть',
+  'что нужно','можно ли','помоги','помогите','расскажи',
+  'объясни','подскажи','хочу','нужно','требуется',
 ];
 
 function isTaskRequest(text: string): boolean {
   const lower = text.toLowerCase();
-  return text.length > 10 && TASK_VERBS.some(v => lower.includes(v));
+  // Short keyword match OR long substantive message (>80 chars = likely real task)
+  const hasVerb = TASK_VERBS.some(v => lower.includes(v));
+  const isLong  = text.length > 80;
+  return hasVerb || isLong;
 }
 
 function formatBytes(bytes: number): string {
