@@ -10,6 +10,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotificationsContext } from '../../contexts/NotificationsContext';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { useToast } from '../ui/Toast';
+import { useTasks } from '../../hooks/useTasks';
+import { streamTaskExecution, saveTaskResult } from '../../hooks/useTaskExecution';
 import { GlassCard } from '../ui/GlassCard';
 import { formatTime } from '../../utils/formatters';
 import { cn } from '../../utils/cn';
@@ -23,6 +25,19 @@ interface AttachedFile {
   type: 'text' | 'image' | 'other';
   content?: string;   // text content (for .txt / .md files)
   dataUrl?: string;   // for images (preview)
+}
+
+// ── Task intent detection ─────────────────────────────────────────────────────
+const TASK_VERBS = [
+  'сделай','составь','напиши','проанализируй','найди','подготовь',
+  'создай','разработай','проверь','оцени','исследуй','изучи',
+  'рассчитай','посчитай','сформируй','реши','подбери','сравни',
+  'переведи','суммаризуй','подготовь','нужно сделать','нужен','нужна',
+];
+
+function isTaskRequest(text: string): boolean {
+  const lower = text.toLowerCase();
+  return text.length > 10 && TASK_VERBS.some(v => lower.includes(v));
 }
 
 function formatBytes(bytes: number): string {
@@ -80,8 +95,9 @@ function LiveChat({ agent }: { agent: Agent }) {
 
   const { memories, memoryContext, globalMemoryContext, extractFromConversation } = useMemory(agent.id);
   const { checkForAgent } = useNotificationsContext();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { toast } = useToast();
+  const { createTask } = useTasks(agent.id);
   const userAvatar = (user?.user_metadata?.avatar_url as string | undefined) ?? undefined;
   const userInitial = (user?.user_metadata?.full_name as string | undefined)?.slice(0, 1)
     ?? user?.email?.slice(0, 1)?.toUpperCase()
@@ -283,6 +299,21 @@ function LiveChat({ agent }: { agent: Agent }) {
     setInput('');
     setAttachments([]);
     await send(fullText, combinedMemoryContext);
+
+    // ── Умная задача: если сообщение — запрос на действие, авто-создать задачу ──
+    if (text && !attachments.length && isTaskRequest(text)) {
+      const title = text.length > 80 ? text.slice(0, 77) + '...' : text;
+      const task  = await createTask({ agentId: agent.id, title, description: text, priority: 'medium' });
+      if (task) {
+        toast.success(`📋 Задача создана и выполняется`);
+        const token = session?.access_token;
+        (async () => {
+          for await (const event of streamTaskExecution(task, token)) {
+            if (event.type === 'done' && event.result) saveTaskResult(task.id, event.result);
+          }
+        })();
+      }
+    }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

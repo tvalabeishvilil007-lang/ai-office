@@ -1,9 +1,9 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Building2, Users, BarChart3, FileText,
+  Building2,
   Settings, Zap, ChevronRight, ChevronLeft,
-  MessagesSquare, Shield, Sun, BotMessageSquare,
+  MessagesSquare, Shield, BotMessageSquare, Headphones,
 } from 'lucide-react';
 import { StatusDot } from '../ui/StatusDot';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,14 +17,9 @@ import { cn } from '../../utils/cn';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  { to: '/my-day',   icon: Sun,            label: 'Мой день',   exact: false },
-  { to: '/',         icon: Building2,      label: 'Офис',       exact: true  },
-  { to: '/team',     icon: Users,          label: 'Команда',    exact: false },
-  { to: '/meeting',  icon: MessagesSquare, label: 'Совещание',  exact: false },
-  { to: '/reports',  icon: BarChart3,      label: 'Аналитика',  exact: false },
-  { to: '/docs',     icon: FileText,       label: 'Документы',  exact: false },
-  { to: '/settings', icon: Settings,          label: 'Настройки',  exact: false },
-  { to: '/agents',   icon: BotMessageSquare,  label: 'Агенты',     exact: false },
+  { to: '/',        icon: Building2,       label: 'Офис',      exact: true  },
+  { to: '/agents',  icon: BotMessageSquare, label: 'Агенты',   exact: false },
+  { to: '/meeting', icon: MessagesSquare,  label: 'Совещание', exact: false },
 ];
 
 export function Sidebar() {
@@ -32,7 +27,13 @@ export function Sidebar() {
   const agentStatuses         = useAgentStatuses();
   const { collapsed, toggle } = useSidebar();
   const { visibleAgents }     = useAgents();
+  const navigate              = useNavigate();
   const sidebarAgents = visibleAgents.filter((a) => a.status !== 'offline').slice(0, 6);
+
+  const openSupport = () => {
+    navigate('/');
+    setTimeout(() => window.dispatchEvent(new Event('support:open')), 50);
+  };
 
   const displayName = user?.user_metadata?.full_name
     ?? user?.email?.split('@')[0]
@@ -189,6 +190,24 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      {/* ── Поддержка (opens support tab in office) ─────────────────────── */}
+      <div className="px-2 mt-0.5 shrink-0">
+        <button
+          onClick={openSupport}
+          title={collapsed ? 'Поддержка' : undefined}
+          className={cn(
+            'w-full flex items-center py-2.5 rounded-xl text-sm font-medium',
+            'transition-all duration-200 text-slate-500 hover:text-slate-300',
+            'hover:bg-white/[0.04]',
+            collapsed ? 'justify-center px-0' : 'gap-3 px-3',
+          )}
+          style={{ border: '1px solid transparent' }}
+        >
+          <Headphones size={16} className="shrink-0" />
+          {!collapsed && <span className="flex-1 text-left whitespace-nowrap">Поддержка</span>}
+        </button>
+      </div>
 
       {/* ── Admin link — only visible to owner ─────────────────────────── */}
       {isAdmin && (

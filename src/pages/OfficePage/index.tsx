@@ -31,9 +31,14 @@ export function OfficePage() {
 
   useEffect(() => {
     if (shouldShowOnboarding()) setShowWelcome(true);
-    function onTour() { setShowWelcome(true); }
+    function onTour()     { setShowWelcome(true); }
+    function onSupport()  { setTab('support'); clearUnread(); }
     window.addEventListener('onboarding:open', onTour);
-    return () => window.removeEventListener('onboarding:open', onTour);
+    window.addEventListener('support:open',    onSupport);
+    return () => {
+      window.removeEventListener('onboarding:open', onTour);
+      window.removeEventListener('support:open',    onSupport);
+    };
   }, []);
 
   const handleOpen = (agent: Agent) => navigate(`/agent/${agent.slug}`);
