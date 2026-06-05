@@ -1,4 +1,4 @@
-import { Suspense, useRef } from 'react';
+import { Suspense, useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
@@ -70,6 +70,14 @@ function AgentBeam({ x, z, color }: { x: number; z: number; color: string }) {
 export function OfficeScene3D({ onOpen }: OfficeScene3DProps) {
   const { visibleAgents } = useAgents();
 
+  // Pause rendering when tab is hidden to save CPU/GPU
+  const [tabVisible, setTabVisible] = useState(!document.hidden);
+  useEffect(() => {
+    const handler = () => setTabVisible(!document.hidden);
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, []);
+
   // Dynamic desk assignment: first N enabled agents (excl. receptionist) fill the slots
   const deskAgents = visibleAgents
     .filter(a => a.id !== 'receptionist')
@@ -82,12 +90,14 @@ export function OfficeScene3D({ onOpen }: OfficeScene3DProps) {
 
   return (
     <Canvas
-      shadows
-      dpr={[1, 1.5]}
+      shadows={false}
+      dpr={[1, 1]}
+      frameloop={tabVisible ? 'always' : 'never'}
       gl={{
-        antialias: true,
+        antialias: false,
         alpha: false,
         powerPreference: 'high-performance',
+        precision: 'mediump',
       }}
       style={{ background: '#04040e', width: '100%', height: '100%' }}
     >
@@ -174,13 +184,13 @@ export function OfficeScene3D({ onOpen }: OfficeScene3DProps) {
         {/* ── Status board ── */}
         <StatusBoard activeAgents={activeAgentCount} />
 
-        {/* ── Post-processing: bloom for neon glow ── */}
-        <EffectComposer>
+        {/* ── Post-processing: lightweight bloom ── */}
+        <EffectComposer multisampling={0}>
           <Bloom
-            luminanceThreshold={0.45}
-            luminanceSmoothing={0.90}
-            intensity={0.55}
-            mipmapBlur
+            luminanceThreshold={0.6}
+            luminanceSmoothing={0.5}
+            intensity={0.25}
+            mipmapBlur={false}
           />
         </EffectComposer>
       </Suspense>

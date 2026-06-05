@@ -315,10 +315,7 @@ export function WorkZone({ position, rotation = 0, accentColor, agentId }: WorkZ
         );
       })}
 
-      {/* ────────────────────── ZONE LIGHT ──────────────────────── */}
-
-      <pointLight position={[0, 2.6, 0]}   color={accentColor} intensity={8}  distance={7} decay={2} />
-      <pointLight position={[0, 3.5, 0.5]} color="#c0c8ff"     intensity={12} distance={8} decay={2} />
+      {/* Zone lights removed — ambient from SceneEnvironment covers desks */}
 
     </group>
   );

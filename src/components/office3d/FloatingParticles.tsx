@@ -20,9 +20,9 @@ interface GroupConfig {
 }
 
 const GROUPS: GroupConfig[] = [
-  { count: 65, color: '#818cf8', size: 0.055, speed: 0.45, spreadX: 18, spreadZ: 14, maxY: 7.5, opacity: 0.55 },
-  { count: 35, color: '#a78bfa', size: 0.038, speed: 0.28, spreadX: 15, spreadZ: 11, maxY: 6.0, opacity: 0.50 },
-  { count: 25, color: '#22d3ee', size: 0.042, speed: 0.60, spreadX: 16, spreadZ: 12, maxY: 5.5, opacity: 0.45 },
+  { count: 30, color: '#818cf8', size: 0.055, speed: 0.45, spreadX: 18, spreadZ: 14, maxY: 7.5, opacity: 0.55 },
+  { count: 15, color: '#a78bfa', size: 0.038, speed: 0.28, spreadX: 15, spreadZ: 11, maxY: 6.0, opacity: 0.50 },
+  { count: 10, color: '#22d3ee', size: 0.042, speed: 0.60, spreadX: 16, spreadZ: 12, maxY: 5.5, opacity: 0.45 },
 ];
 
 function ParticleGroup({ count, color, size, speed, spreadX, spreadZ, maxY, opacity }: GroupConfig) {

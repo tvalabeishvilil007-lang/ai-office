@@ -642,7 +642,7 @@ function VoxelPlant({ position }: { position: [number, number, number] }) {
           </mesh>
         );
       })}
-      <pointLight position={[0, 0.8, 0]} color="#22c55e" intensity={1.5} distance={2.5} decay={2} />
+      {/* plant light removed for performance */}
     </group>
   );
 }
@@ -928,7 +928,7 @@ function ServerRack({ position, rotY = 0 }: { position: [number,number,number]; 
         <meshBasicMaterial color="#6366f1" transparent opacity={0.07} depthWrite={false} />
       </mesh>
 
-      <pointLight position={[0, 2.5, 0.5]} color="#10b981" intensity={4} distance={4} decay={2} />
+      {/* server rack light removed for performance */}
     </group>
   );
 }
@@ -1183,7 +1183,7 @@ function FilingShelf({ position, rotY = 0, seed = 0 }: {
         );
       })}
 
-      <pointLight position={[0, 1.80, D / 2 + 0.30]} color="#8080ff" intensity={2.5} distance={3.5} decay={2} />
+      {/* filing shelf light removed for performance */}
     </group>
   );
 }
@@ -1271,7 +1271,7 @@ function ReceptionArea() {
           <boxGeometry args={[0.28, 0.06, 0.012]} />
           <meshStandardMaterial color="#1a1a36" metalness={0.82} roughness={0.3} />
         </mesh>
-        <pointLight position={[0, 0.3, 0.3]} color="#4060ff" intensity={2} distance={1.5} decay={2} />
+        {/* tablet light removed for performance */}
       </group>
 
       {/* Nameplate */}
@@ -1351,10 +1351,8 @@ function CeilingLights() {
             </mesh>
           ))}
 
-          {/* Point lights distributed along strip */}
-          {([-7, -3.5, 0, 3.5, 7] as number[]).map((lx, li) => (
-            <pointLight key={li} position={[lx, -0.3, 0]} color={COLOR} intensity={4} distance={7} decay={2} />
-          ))}
+          {/* Single centered light per strip row (was 5 per row) */}
+          <pointLight position={[0, -0.3, 0]} color={COLOR} intensity={6} distance={18} decay={1.5} />
         </group>
       ))}
     </>
