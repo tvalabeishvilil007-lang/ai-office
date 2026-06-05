@@ -229,6 +229,30 @@ export function LoginPage() {
           Ваши данные изолированы и защищены · Supabase RLS
         </motion.p>
 
+        {/* By Lasha */}
+        <motion.div
+          className="flex items-center justify-center gap-2 mt-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.85 }}
+        >
+          <div className="h-px w-10" style={{ background: 'rgba(99,102,241,0.25)' }} />
+          <span
+            style={{
+              fontFamily: 'system-ui, sans-serif',
+              fontSize: 11,
+              fontWeight: 500,
+              letterSpacing: '0.16em',
+              background: 'linear-gradient(90deg, #6366f1, #a5b4fc)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            by Lasha
+          </span>
+          <div className="h-px w-10" style={{ background: 'rgba(99,102,241,0.25)' }} />
+        </motion.div>
+
       </motion.div>
     </div>
   );

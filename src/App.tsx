@@ -5,6 +5,7 @@ import { NotificationsProvider } from './contexts/NotificationsContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import { AgentManagerProvider } from './contexts/AgentManagerContext';
 import { ToastProvider } from './components/ui/Toast';
+import { SplashScreen } from './components/ui/SplashScreen';
 import { router } from './router';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -16,6 +17,8 @@ import { router } from './router';
 
 export default function App() {
   return (
+    <>
+    <SplashScreen />
     <AuthProvider>
       <AgentStatusProvider>
         <NotificationsProvider>
@@ -29,5 +32,6 @@ export default function App() {
         </NotificationsProvider>
       </AgentStatusProvider>
     </AuthProvider>
+    </>
   );
 }
