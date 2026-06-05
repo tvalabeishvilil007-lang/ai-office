@@ -20,7 +20,10 @@ export type AgentCategory =
   | 'personal'
   | 'hr'
   | 'tech'
-  | 'operations';
+  | 'operations'
+  | 'education';
+
+export type AppMode = 'work' | 'study';
 
 export interface AgentSkill {
   id: string;
@@ -44,6 +47,8 @@ export interface Agent {
   tasksCompleted: number;
   activeTaskCount: number;
   rating: number;         // 0–5
+  // Mode: 'work' (default) or 'study'
+  mode?: AppMode;
   // Custom agent fields
   isCustom?: boolean;
   systemPrompt?: string;  // For custom agents — passed to server

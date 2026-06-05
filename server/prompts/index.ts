@@ -14,6 +14,14 @@ import { ACCOUNTANT_PROMPT }          from './accountant.js';
 import { COACH_PROMPT }               from './coach.js';
 import { DEVELOPER_PROMPT }           from './developer.js';
 import { OPERATIONS_PROMPT }          from './operations.js';
+// ── Study agents ──────────────────────────────────────────────────────────────
+import { MATH_TUTOR_PROMPT }          from './math-tutor.js';
+import { LANGUAGE_TEACHER_PROMPT }    from './language-teacher.js';
+import { CODE_MENTOR_PROMPT }         from './code-mentor.js';
+import { PHYSICS_TUTOR_PROMPT }       from './physics-tutor.js';
+import { HISTORY_TUTOR_PROMPT }       from './history-tutor.js';
+import { BIOLOGY_TUTOR_PROMPT }       from './biology-tutor.js';
+import { LITERATURE_TUTOR_PROMPT }    from './literature-tutor.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Prompt registry — maps agentId → system prompt.
@@ -25,6 +33,7 @@ import { OPERATIONS_PROMPT }          from './operations.js';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PROMPTS: Record<string, string> = {
+  // ── Work agents ──────────────────────────────────────────────────────────────
   'lawyer-georgia':      LEGAL_GEORGIA_PROMPT,
   'business-assistant':  BUSINESS_ASSISTANT_PROMPT,
   'finance':             FINANCE_PROMPT,
@@ -41,6 +50,14 @@ const PROMPTS: Record<string, string> = {
   'coach':               COACH_PROMPT,
   'developer':           DEVELOPER_PROMPT,
   'operations':          OPERATIONS_PROMPT,
+  // ── Study agents ─────────────────────────────────────────────────────────────
+  'math-tutor':          MATH_TUTOR_PROMPT,
+  'language-teacher':    LANGUAGE_TEACHER_PROMPT,
+  'code-mentor':         CODE_MENTOR_PROMPT,
+  'physics-tutor':       PHYSICS_TUTOR_PROMPT,
+  'history-tutor':       HISTORY_TUTOR_PROMPT,
+  'biology-tutor':       BIOLOGY_TUTOR_PROMPT,
+  'literature-tutor':    LITERATURE_TUTOR_PROMPT,
 };
 
 export function getSystemPrompt(agentId: string): string | null {

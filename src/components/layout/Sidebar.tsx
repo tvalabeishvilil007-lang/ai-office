@@ -11,6 +11,7 @@ import { useAgentStatuses } from '../../contexts/AgentStatusContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useAgents } from '../../contexts/AgentManagerContext';
 import { usePresence } from '../../hooks/usePresence';
+import { useMode } from '../../contexts/ModeContext';
 import { cn } from '../../utils/cn';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -29,7 +30,10 @@ export function Sidebar() {
   const { collapsed, toggle } = useSidebar();
   const { visibleAgents }     = useAgents();
   const navigate              = useNavigate();
-  const sidebarAgents = visibleAgents.filter((a) => a.status !== 'offline').slice(0, 6);
+  const { mode, toggleMode, isStudy } = useMode();
+  const sidebarAgents = visibleAgents
+    .filter(a => a.status !== 'offline' && (a.mode ?? 'work') === mode)
+    .slice(0, 6);
 
   // Broadcast presence for all authenticated pages
   usePresence();
@@ -194,6 +198,31 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      {/* ── Work / Study toggle ──────────────────────────────────────────── */}
+      <div className="px-2 mt-1 shrink-0">
+        <button
+          onClick={toggleMode}
+          title={collapsed ? (isStudy ? 'Учёба' : 'Работа') : undefined}
+          className={cn(
+            'w-full flex items-center py-2 rounded-xl text-xs font-semibold transition-all duration-200',
+            collapsed ? 'justify-center px-0' : 'gap-2 px-3',
+          )}
+          style={{
+            background: isStudy ? 'rgba(139,92,246,0.12)' : 'rgba(59,130,246,0.10)',
+            border: `1px solid ${isStudy ? 'rgba(139,92,246,0.25)' : 'rgba(59,130,246,0.20)'}`,
+            color: isStudy ? '#a78bfa' : '#60a5fa',
+          }}
+        >
+          <span className="text-base leading-none">{isStudy ? '📚' : '💼'}</span>
+          {!collapsed && (
+            <span className="flex-1 text-left">{isStudy ? 'Учёба' : 'Работа'}</span>
+          )}
+          {!collapsed && (
+            <span className="text-[9px] opacity-60">{isStudy ? '→ Работа' : '→ Учёба'}</span>
+          )}
+        </button>
+      </div>
 
       {/* ── Поддержка (opens support tab in office) ─────────────────────── */}
       <div className="px-2 mt-0.5 shrink-0">
