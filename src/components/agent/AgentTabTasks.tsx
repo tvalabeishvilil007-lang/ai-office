@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Clock, AlertCircle, Flame,
   Trash2, Circle, X, ChevronDown, ChevronUp, GripVertical, CalendarClock,
-  Check, Square, Layers, MoveRight, ListTodo, FileText, Loader2,
+  Check, Square, Layers, MoveRight, ListTodo, FileText, Loader2, Copy, Maximize2,
 } from 'lucide-react';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -303,7 +303,16 @@ function TaskCard({ task, agent, onStatusChange, onDelete, dragHandleProps, dueD
   const [subtasks,       setSubtasks]       = useState<Subtask[]>(() => loadSubtasks(task.id));
   const [newSubtaskText, setNewSubtaskText] = useState('');
   const [resultOpen,     setResultOpen]     = useState(false);
+  const [fullScreen,     setFullScreen]     = useState(false);
+  const [copied,         setCopied]         = useState(false);
   const subtaskInputRef = useRef<HTMLInputElement>(null);
+
+  const copyResult = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const execMap = useContext(ExecContext);
   const execState = execMap.get(task.id);
@@ -478,15 +487,42 @@ function TaskCard({ task, agent, onStatusChange, onDelete, dragHandleProps, dueD
       {/* Result toggle for completed tasks */}
       {task.status === 'done' && savedResult && (
         <div className="pl-8">
-          <button
-            onClick={() => setResultOpen(o => !o)}
-            className="flex items-center gap-1.5 text-[10px] transition-colors"
-            style={{ color: resultOpen ? agent.accentColor : '#64748b' }}
-          >
-            <FileText size={10} />
-            {resultOpen ? 'Скрыть результат' : 'Результат'}
-            {resultOpen ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
-          </button>
+          {/* Header row */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setResultOpen(o => !o)}
+              className="flex items-center gap-1.5 text-[10px] transition-colors flex-1 min-w-0"
+              style={{ color: resultOpen ? agent.accentColor : '#64748b' }}
+            >
+              <FileText size={10} className="shrink-0" />
+              {resultOpen ? 'Скрыть результат' : 'Результат агента'}
+              {resultOpen ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
+            </button>
+            {/* Copy button */}
+            <button
+              onClick={() => copyResult(savedResult)}
+              title="Копировать результат"
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium transition-all shrink-0"
+              style={{
+                background: copied ? `${agent.accentColor}22` : 'rgba(255,255,255,0.04)',
+                color:      copied ? agent.accentColor : '#64748b',
+                border:     `1px solid ${copied ? agent.accentColor + '44' : 'rgba(255,255,255,0.07)'}`,
+              }}
+            >
+              <Copy size={8} />
+              {copied ? 'Скопировано' : 'Копировать'}
+            </button>
+            {/* Fullscreen button */}
+            <button
+              onClick={() => setFullScreen(true)}
+              title="Открыть полностью"
+              className="p-1 rounded text-slate-700 hover:text-slate-400 transition-colors shrink-0"
+            >
+              <Maximize2 size={9} />
+            </button>
+          </div>
+
+          {/* Inline preview */}
           <AnimatePresence>
             {resultOpen && (
               <motion.div
@@ -496,7 +532,7 @@ function TaskCard({ task, agent, onStatusChange, onDelete, dragHandleProps, dueD
                 className="overflow-hidden mt-1.5"
               >
                 <div
-                  className="text-[10px] text-slate-300 leading-relaxed max-h-48 overflow-y-auto rounded-lg p-2 whitespace-pre-wrap"
+                  className="text-[10px] text-slate-300 leading-relaxed max-h-52 overflow-y-auto rounded-lg p-2.5 whitespace-pre-wrap"
                   style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${agent.accentColor}20` }}
                 >
                   {savedResult}
@@ -506,6 +542,61 @@ function TaskCard({ task, agent, onStatusChange, onDelete, dragHandleProps, dueD
           </AnimatePresence>
         </div>
       )}
+
+      {/* Full-screen result modal */}
+      <AnimatePresence>
+        {fullScreen && savedResult && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+            onClick={() => setFullScreen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1,    opacity: 1 }}
+              exit={{ scale: 0.95,    opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="w-full max-w-2xl max-h-[80vh] flex flex-col rounded-2xl overflow-hidden"
+              style={{ background: '#0e1628', border: `1px solid ${agent.accentColor}35` }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Modal header */}
+              <div className="flex items-center gap-3 px-5 py-3.5 shrink-0 border-b border-white/[0.06]">
+                <span className="text-sm font-semibold text-slate-200 flex-1 truncate">
+                  {task.title}
+                </span>
+                <button
+                  onClick={() => copyResult(savedResult)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                  style={{
+                    background: copied ? `${agent.accentColor}22` : 'rgba(255,255,255,0.06)',
+                    color:      copied ? agent.accentColor : '#94a3b8',
+                    border:     `1px solid ${copied ? agent.accentColor + '44' : 'rgba(255,255,255,0.08)'}`,
+                  }}
+                >
+                  <Copy size={11} />
+                  {copied ? 'Скопировано ✓' : 'Копировать'}
+                </button>
+                <button
+                  onClick={() => setFullScreen(false)}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/[0.05] transition-all"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              {/* Modal body */}
+              <div className="flex-1 overflow-y-auto p-5">
+                <pre className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap font-sans">
+                  {savedResult}
+                </pre>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Subtasks section ─────────────────────────────────────────────── */}
       <div className="pl-8">
