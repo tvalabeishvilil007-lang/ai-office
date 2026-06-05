@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Zap, ChevronDown, Flame, AlertCircle, Clock, Circle } from 'lucide-react';
 import { useTasks } from '../../hooks/useTasks';
+import { streamTaskExecution, saveTaskResult } from '../../hooks/useTaskExecution';
+import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../ui/Toast';
 import { useAgents } from '../../contexts/AgentManagerContext';
 import { cn } from '../../utils/cn';
@@ -28,6 +30,7 @@ export function QuickTaskModal({ onClose, defaultAgentId }: QuickTaskModalProps)
   const { createTask } = useTasks();
   const { toast } = useToast();
   const { visibleAgents } = useAgents();
+  const { session } = useAuth();
 
   const activeAgents = visibleAgents.filter(a => a.status !== 'offline');
 
@@ -45,7 +48,7 @@ export function QuickTaskModal({ onClose, defaultAgentId }: QuickTaskModalProps)
   const handleSubmit = async () => {
     if (!title.trim() || saving) return;
     setSaving(true);
-    await createTask({
+    const task = await createTask({
       agentId,
       title:       title.trim(),
       description: description.trim(),
@@ -54,6 +57,18 @@ export function QuickTaskModal({ onClose, defaultAgentId }: QuickTaskModalProps)
     setSaving(false);
     toast.success(`Задача поставлена → ${selectedAgent.name}`);
     onClose();
+
+    // Auto-execute: fire-and-forget in background
+    if (task) {
+      const token = session?.access_token;
+      (async () => {
+        for await (const event of streamTaskExecution(task, token)) {
+          if (event.type === 'done' && event.result) {
+            saveTaskResult(task.id, event.result);
+          }
+        }
+      })();
+    }
   };
 
   return createPortal(
