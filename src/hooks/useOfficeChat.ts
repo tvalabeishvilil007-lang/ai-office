@@ -61,6 +61,7 @@ export function useOfficeChat() {
       const { data, error } = await db
         .from('office_messages')
         .select('*')
+        .eq('user_id', userId)
         .order('created_at', { ascending: true })
         .limit(80);
 
@@ -82,7 +83,7 @@ export function useOfficeChat() {
       .channel(`office_messages:${channelSuffix.current}`)
       .on(
         'postgres_changes' as any,
-        { event: 'INSERT', schema: 'public', table: 'office_messages' },
+        { event: 'INSERT', schema: 'public', table: 'office_messages', filter: `user_id=eq.${userId}` },
         (payload: { new: DbOfficeMessage }) => {
           if (cancelled) return;
           const incoming = dbToMsg(payload.new, user.id);
