@@ -6,18 +6,18 @@ import { useAuth } from '../contexts/AuthContext';
 // ─────────────────────────────────────────────────────────────────────────────
 // usePresence — Supabase Realtime Presence
 //
-// Every logged-in user broadcasts their state to the 'office:presence' channel.
-// The hook returns a list of all currently online users (useful for admin panel).
+// Uses a module-level singleton so only ONE channel is ever created,
+// even if the hook is used in multiple components simultaneously.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface OnlineUser {
-  userId:   string;
-  email:    string;
-  name:     string;
-  avatar?:  string;
-  page:     string;
-  pageLabel:string;
-  onlineAt: string;
+  userId:    string;
+  email:     string;
+  name:      string;
+  avatar?:   string;
+  page:      string;
+  pageLabel: string;
+  onlineAt:  string;
 }
 
 const PAGE_LABELS: Record<string, string> = {
@@ -37,69 +37,91 @@ function getPageLabel(path: string): string {
   return PAGE_LABELS[path] ?? path;
 }
 
+// ── Module-level singleton ────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _channel: any = null;
+let _online: OnlineUser[] = [];
+const _listeners = new Set<(u: OnlineUser[]) => void>();
+
+function notifyListeners() {
+  _listeners.forEach(fn => fn([..._online]));
+}
+
+function syncState(channel: ReturnType<typeof supabase.channel>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const state = channel.presenceState() as Record<string, any[]>;
+  const users: OnlineUser[] = [];
+  for (const [userId, presences] of Object.entries(state)) {
+    const p = presences[0] as Omit<OnlineUser, 'userId'> | undefined;
+    if (p) users.push({ userId, ...p });
+  }
+  users.sort((a, b) => b.onlineAt.localeCompare(a.onlineAt));
+  _online = users;
+  notifyListeners();
+}
+
+// ── Public hook ───────────────────────────────────────────────────────────────
+
 export function usePresence(): OnlineUser[] {
   const { user }    = useAuth();
   const location    = useLocation();
-  const [online, setOnline] = useState<OnlineUser[]>([]);
-  const channelRef  = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [online, setOnline] = useState<OnlineUser[]>(_online);
+  const trackedRef  = useRef(false);
 
+  // Subscribe to state changes
   useEffect(() => {
-    if (!user) return;
+    const listener = (u: OnlineUser[]) => setOnline(u);
+    _listeners.add(listener);
+    return () => { _listeners.delete(listener); };
+  }, []);
 
-    const channel = supabase.channel('office:presence', {
+  // Create the singleton channel once
+  useEffect(() => {
+    if (!user || _channel) return;
+
+    _channel = supabase.channel('office:presence', {
       config: { presence: { key: user.id } },
     });
 
-    channelRef.current = channel;
-
-    const syncOnline = () => {
-      const state = channel.presenceState<Omit<OnlineUser, 'userId'>>();
-      const users: OnlineUser[] = [];
-      for (const [userId, presences] of Object.entries(state)) {
-        const p = (presences as unknown[])[0] as Omit<OnlineUser, 'userId'>;
-        if (p) users.push({ userId, ...p });
-      }
-      // Sort: most recently joined first
-      users.sort((a, b) => b.onlineAt.localeCompare(a.onlineAt));
-      setOnline(users);
-    };
-
-    channel
-      .on('presence', { event: 'sync'  }, syncOnline)
-      .on('presence', { event: 'join'  }, syncOnline)
-      .on('presence', { event: 'leave' }, syncOnline)
-      .subscribe(async (status) => {
+    _channel
+      .on('presence', { event: 'sync'  }, () => syncState(_channel))
+      .on('presence', { event: 'join'  }, () => syncState(_channel))
+      .on('presence', { event: 'leave' }, () => syncState(_channel))
+      .subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
-          await channel.track({
-            email:    user.email ?? '',
-            name:     (user.user_metadata?.full_name as string | undefined)
-                        ?? user.email?.split('@')[0]
-                        ?? 'Пользователь',
-            avatar:   (user.user_metadata?.avatar_url as string | undefined) ?? '',
-            page:     location.pathname,
+          trackedRef.current = true;
+          await _channel.track({
+            email:     user.email ?? '',
+            name:      (user.user_metadata?.full_name as string | undefined)
+                         ?? user.email?.split('@')[0] ?? 'Пользователь',
+            avatar:    (user.user_metadata?.avatar_url as string | undefined) ?? '',
+            page:      location.pathname,
             pageLabel: getPageLabel(location.pathname),
-            onlineAt: new Date().toISOString(),
+            onlineAt:  new Date().toISOString(),
           });
         }
       });
 
     return () => {
-      supabase.removeChannel(channel);
+      if (_channel) {
+        supabase.removeChannel(_channel);
+        _channel = null;
+        _online  = [];
+      }
     };
   }, [user?.id]);
 
-  // Re-track on page change
+  // Update page on navigation
   useEffect(() => {
-    if (!user || !channelRef.current) return;
-    channelRef.current.track({
-      email:    user.email ?? '',
-      name:     (user.user_metadata?.full_name as string | undefined)
-                  ?? user.email?.split('@')[0]
-                  ?? 'Пользователь',
-      avatar:   (user.user_metadata?.avatar_url as string | undefined) ?? '',
-      page:     location.pathname,
+    if (!user || !_channel || !trackedRef.current) return;
+    _channel.track({
+      email:     user.email ?? '',
+      name:      (user.user_metadata?.full_name as string | undefined)
+                   ?? user.email?.split('@')[0] ?? 'Пользователь',
+      avatar:    (user.user_metadata?.avatar_url as string | undefined) ?? '',
+      page:      location.pathname,
       pageLabel: getPageLabel(location.pathname),
-      onlineAt: new Date().toISOString(),
+      onlineAt:  new Date().toISOString(),
     });
   }, [location.pathname, user?.id]);
 
