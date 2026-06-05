@@ -17,6 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useTasks } from '../../hooks/useTasks';
 import { streamTaskExecution, saveTaskResult, loadTaskResult } from '../../hooks/useTaskExecution';
+import { streamAgentChat } from '../../services/ai/chat-api';
 import { useAuth } from '../../contexts/AuthContext';
 import { GlassCard } from '../ui/GlassCard';
 import { Badge } from '../ui/Badge';
@@ -298,14 +299,17 @@ function TaskCard({ task, agent, onStatusChange, onDelete, dragHandleProps, dueD
   onToggleSelect?: (id: string) => void;
   selectionMode?: boolean;
 }) {
-  const [menuOpen,       setMenuOpen]       = useState(false);
-  const [subtasksOpen,   setSubtasksOpen]   = useState(false);
-  const [subtasks,       setSubtasks]       = useState<Subtask[]>(() => loadSubtasks(task.id));
-  const [newSubtaskText, setNewSubtaskText] = useState('');
-  const [resultOpen,     setResultOpen]     = useState(false);
-  const [fullScreen,     setFullScreen]     = useState(false);
-  const [copied,         setCopied]         = useState(false);
+  const [menuOpen,          setMenuOpen]          = useState(false);
+  const [subtasksOpen,      setSubtasksOpen]      = useState(false);
+  const [subtasks,          setSubtasks]          = useState<Subtask[]>(() => loadSubtasks(task.id));
+  const [newSubtaskText,    setNewSubtaskText]     = useState('');
+  const [resultOpen,        setResultOpen]         = useState(false);
+  const [fullScreen,        setFullScreen]         = useState(false);
+  const [copied,            setCopied]             = useState(false);
+  const [subtaskStream,     setSubtaskStream]      = useState<Map<string, string>>(new Map());
   const subtaskInputRef = useRef<HTMLInputElement>(null);
+
+  const { session } = useAuth();
 
   const copyResult = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -322,12 +326,52 @@ function TaskCard({ task, agent, onStatusChange, onDelete, dragHandleProps, dueD
     setSubtasks(next);
     persistSubtasks(task.id, next);
   };
+
+  // Execute a subtask via AI — streams response, marks done on finish
+  const executeSubtask = async (sub: Subtask) => {
+    const token = session?.access_token;
+    setSubtaskStream(prev => new Map(prev).set(sub.id, ''));
+
+    const prompt = `Подзадача: ${sub.text}\n\nВыполни эту подзадачу конкретно и кратко. Дай готовый результат без лишних вступлений.`;
+
+    let result = '';
+    try {
+      for await (const event of streamAgentChat(
+        task.agentId,
+        [{ role: 'user', content: prompt }],
+        token,
+      )) {
+        if (event.type === 'chunk' && event.text) {
+          result += event.text;
+          const id = sub.id;
+          setSubtaskStream(prev => new Map(prev).set(id, result));
+        } else if (event.type === 'done') {
+          localStorage.setItem(`subtask_result:${sub.id}`, result);
+          // Mark subtask as done using functional update to avoid stale closure
+          setSubtasks(prev => {
+            const updated = prev.map(s => s.id === sub.id ? { ...s, done: true } : s);
+            persistSubtasks(task.id, updated);
+            return updated;
+          });
+          setSubtaskStream(prev => { const m = new Map(prev); m.delete(sub.id); return m; });
+        } else if (event.type === 'error') {
+          setSubtaskStream(prev => { const m = new Map(prev); m.delete(sub.id); return m; });
+        }
+      }
+    } catch {
+      setSubtaskStream(prev => { const m = new Map(prev); m.delete(sub.id); return m; });
+    }
+  };
+
   const addSubtask = () => {
     const text = newSubtaskText.trim();
     if (!text) return;
-    updateSubtasks([...subtasks, { id: crypto.randomUUID(), text, done: false }]);
+    const newSub: Subtask = { id: crypto.randomUUID(), text, done: false };
+    updateSubtasks([...subtasks, newSub]);
     setNewSubtaskText('');
     subtaskInputRef.current?.focus();
+    setSubtasksOpen(true);
+    executeSubtask(newSub);
   };
   const toggleSubtask = (id: string) =>
     updateSubtasks(subtasks.map(s => s.id === id ? { ...s, done: !s.done } : s));
@@ -632,24 +676,75 @@ function TaskCard({ task, agent, onStatusChange, onDelete, dragHandleProps, dueD
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden mt-1.5 space-y-1"
             >
-              {subtasks.map(s => (
-                <div key={s.id} className="group flex items-center gap-1.5">
-                  <button onClick={() => toggleSubtask(s.id)} className="shrink-0 transition-colors"
-                    style={{ color: s.done ? agent.accentColor : '#475569' }}>
-                    {s.done
-                      ? <Check size={11} />
-                      : <Square size={11} />
-                    }
-                  </button>
-                  <span className={cn('text-[11px] flex-1', s.done ? 'text-slate-600 line-through' : 'text-slate-400')}>
-                    {s.text}
-                  </span>
-                  <button onClick={() => deleteSubtask(s.id)}
-                    className="opacity-0 group-hover:opacity-100 text-slate-700 hover:text-rose-400 transition-all shrink-0">
-                    <X size={9} />
-                  </button>
-                </div>
-              ))}
+              {subtasks.map(s => {
+                const isExecuting   = subtaskStream.has(s.id);
+                const streamText    = subtaskStream.get(s.id) ?? '';
+                const subtaskResult = !isExecuting && s.done
+                  ? localStorage.getItem(`subtask_result:${s.id}`)
+                  : null;
+
+                return (
+                  <div key={s.id} className="space-y-0.5">
+                    <div className="group flex items-center gap-1.5">
+                      <button
+                        onClick={() => toggleSubtask(s.id)}
+                        className="shrink-0 transition-colors"
+                        style={{ color: s.done ? agent.accentColor : isExecuting ? '#f59e0b' : '#475569' }}
+                      >
+                        {isExecuting
+                          ? <Loader2 size={11} className="animate-spin" />
+                          : s.done
+                            ? <Check size={11} />
+                            : <Square size={11} />
+                        }
+                      </button>
+                      <span className={cn(
+                        'text-[11px] flex-1',
+                        s.done && !isExecuting ? 'text-slate-600 line-through' : 'text-slate-300',
+                      )}>
+                        {s.text}
+                      </span>
+                      {subtaskResult && (
+                        <button
+                          onClick={() => navigator.clipboard.writeText(subtaskResult)}
+                          className="opacity-0 group-hover:opacity-100 text-slate-700 hover:text-slate-400 transition-all shrink-0"
+                          title="Копировать результат"
+                        >
+                          <Copy size={9} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteSubtask(s.id)}
+                        className="opacity-0 group-hover:opacity-100 text-slate-700 hover:text-rose-400 transition-all shrink-0"
+                      >
+                        <X size={9} />
+                      </button>
+                    </div>
+
+                    {/* Live stream */}
+                    {isExecuting && streamText && (
+                      <div
+                        className="ml-4 text-[9px] text-slate-400 leading-relaxed max-h-16 overflow-y-auto rounded p-1.5"
+                        style={{ background: 'rgba(255,255,255,0.03)', borderLeft: `2px solid ${agent.accentColor}40` }}
+                      >
+                        {streamText}
+                        <span className="inline-block w-1 h-2.5 ml-0.5 align-middle animate-pulse rounded-sm" style={{ background: agent.accentColor }} />
+                      </div>
+                    )}
+
+                    {/* Saved result (collapsed by default, shown on hover/expand) */}
+                    {subtaskResult && (
+                      <div
+                        className="ml-4 text-[9px] text-slate-500 leading-relaxed max-h-12 overflow-hidden rounded p-1.5 cursor-pointer hover:max-h-40 transition-all duration-300"
+                        style={{ background: 'rgba(255,255,255,0.02)', borderLeft: `2px solid ${agent.accentColor}25` }}
+                        title="Наведи чтобы развернуть"
+                      >
+                        {subtaskResult}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               {/* Add subtask input */}
               <div className="flex items-center gap-1.5 mt-1">
                 <div className="w-[11px] shrink-0" />
