@@ -55,23 +55,26 @@ export function useAdminChat() {
 
     async function load() {
       setLoading(true);
+      try {
+        const { data, error } = await db
+          .from('admin_messages')
+          .select('*')
+          .eq('user_id', user!.id)
+          .order('created_at', { ascending: true })
+          .limit(200);
 
-      // Try Supabase directly first (RLS: user sees own thread)
-      const { data, error } = await db
-        .from('admin_messages')
-        .select('*')
-        .eq('user_id', user!.id)
-        .order('created_at', { ascending: true })
-        .limit(200);
+        if (cancelled) return;
 
-      if (cancelled) return;
-
-      if (!error && data) {
-        const msgs = (data as DbMsg[]).map(dbToMsg);
-        setMessages(msgs);
-        setUnread(msgs.filter(m => m.isFromAdmin).length); // simplified badge
+        if (!error && data) {
+          const msgs = (data as DbMsg[]).map(dbToMsg);
+          setMessages(msgs);
+          setUnread(msgs.filter(m => m.isFromAdmin).length);
+        }
+      } catch {
+        // table may not exist yet or network error — show empty state
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     }
 
     load();
