@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield, UserPlus, Trash2, ToggleLeft, ToggleRight,
   Users, CheckCircle2, XCircle, Clock, Search, X, RefreshCw,
+  Wifi, MapPin,
 } from 'lucide-react';
+import { usePresence } from '../../hooks/usePresence';
 import { supabase } from '../../lib/supabase';
 import { useAuth, ADMIN_EMAIL } from '../../contexts/AuthContext';
 import { Topbar  } from '../../components/layout/Topbar';
@@ -32,6 +34,8 @@ interface AllowedUser {
 export function AdminPage() {
   const { user }   = useAuth();
   const { toast }  = useToast();
+
+  const onlineUsers = usePresence();
 
   const [users,     setUsers]     = useState<AllowedUser[]>([]);
   const [loading,   setLoading]   = useState(true);
@@ -164,6 +168,52 @@ export function AdminPage() {
               <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
               Обновить
             </button>
+          </div>
+
+          {/* ── Online users ───────────────────────────────────────────────── */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Wifi size={13} className="text-emerald-400" />
+              <span className="text-xs font-semibold text-slate-300">Сейчас онлайн</span>
+              <span
+                className="px-1.5 py-0.5 rounded-full text-[10px] font-bold"
+                style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}
+              >
+                {onlineUsers.length}
+              </span>
+            </div>
+            <GlassCard variant="default" padding="sm">
+              {onlineUsers.length === 0 ? (
+                <p className="text-[11px] text-slate-600 text-center py-3">Нет активных пользователей</p>
+              ) : (
+                <div className="space-y-2">
+                  {onlineUsers.map(u => (
+                    <div key={u.userId} className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/[0.03] transition-colors">
+                      {/* Avatar */}
+                      {u.avatar ? (
+                        <img src={u.avatar} alt={u.name} className="w-7 h-7 rounded-lg object-cover shrink-0 border border-emerald-500/20" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
+                          style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
+                          {u.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-semibold text-slate-200 truncate">{u.name}</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                        </div>
+                        <span className="text-[10px] text-slate-500 truncate block">{u.email}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] text-slate-500 shrink-0">
+                        <MapPin size={9} />
+                        {u.pageLabel}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </GlassCard>
           </div>
 
           {/* Stats */}

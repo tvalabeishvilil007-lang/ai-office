@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAgentStatuses } from '../../contexts/AgentStatusContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useAgents } from '../../contexts/AgentManagerContext';
+import { usePresence } from '../../hooks/usePresence';
 import { cn } from '../../utils/cn';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -29,6 +30,9 @@ export function Sidebar() {
   const { visibleAgents }     = useAgents();
   const navigate              = useNavigate();
   const sidebarAgents = visibleAgents.filter((a) => a.status !== 'offline').slice(0, 6);
+
+  // Broadcast presence for all authenticated pages
+  usePresence();
 
   const openSupport = () => {
     navigate('/');
