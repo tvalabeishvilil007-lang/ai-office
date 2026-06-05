@@ -10,6 +10,7 @@ import { notificationsRouter } from './routes/notifications.js';
 import { documentsRouter }     from './routes/documents.js';
 import { summaryRouter }       from './routes/summary.js';
 import { officeChatRouter }    from './routes/officeChat.js';
+import { tasksRouter }         from './routes/tasks.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AI-Office Express Server
@@ -59,6 +60,7 @@ app.use('/api', notificationsRouter);
 app.use('/api', documentsRouter);
 app.use('/api', summaryRouter);
 app.use('/api', officeChatRouter);
+app.use('/api', tasksRouter);
 
 // ── Static frontend (production only) ────────────────────────────────────────
 // dist-server/index.js is one level below the repo root, so dist/ is at ../dist

@@ -1,10 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, createContext, useContext } from 'react';
 import { SkeletonKanban } from '../ui/Skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Clock, AlertCircle, Flame,
   Trash2, Circle, X, ChevronDown, ChevronUp, GripVertical, CalendarClock,
-  Check, Square, Layers, MoveRight, ListTodo,
+  Check, Square, Layers, MoveRight, ListTodo, FileText, Loader2,
 } from 'lucide-react';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -16,12 +16,19 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useTasks } from '../../hooks/useTasks';
+import { streamTaskExecution, saveTaskResult, loadTaskResult } from '../../hooks/useTaskExecution';
+import { useAuth } from '../../contexts/AuthContext';
 import { GlassCard } from '../ui/GlassCard';
 import { Badge } from '../ui/Badge';
 import { ProgressBar } from '../ui/ProgressBar';
 import { formatRelativeTime } from '../../utils/formatters';
 import { cn } from '../../utils/cn';
 import type { Agent, Task, TaskPriority, TaskStatus } from '../../types';
+
+// ── Execution state context — avoids prop drilling through Kanban columns ──────
+
+interface ExecState { text: string; progress: number }
+const ExecContext = createContext<Map<string, ExecState>>(new Map());
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AgentTabTasks — Kanban board (Очередь | Выполняется | Готово)
@@ -295,7 +302,12 @@ function TaskCard({ task, agent, onStatusChange, onDelete, dragHandleProps, dueD
   const [subtasksOpen,   setSubtasksOpen]   = useState(false);
   const [subtasks,       setSubtasks]       = useState<Subtask[]>(() => loadSubtasks(task.id));
   const [newSubtaskText, setNewSubtaskText] = useState('');
+  const [resultOpen,     setResultOpen]     = useState(false);
   const subtaskInputRef = useRef<HTMLInputElement>(null);
+
+  const execMap = useContext(ExecContext);
+  const execState = execMap.get(task.id);
+  const savedResult = task.status === 'done' ? loadTaskResult(task.id) : null;
 
   const updateSubtasks = (next: Subtask[]) => {
     setSubtasks(next);
@@ -439,10 +451,59 @@ function TaskCard({ task, agent, onStatusChange, onDelete, dragHandleProps, dueD
         <p className="text-[10px] text-slate-500 leading-relaxed pl-8 line-clamp-2">{task.description}</p>
       )}
 
-      {/* Progress bar */}
-      {task.status === 'running' && (
-        <div className="pl-8">
+      {/* Live execution stream */}
+      {execState && (
+        <div className="pl-8 space-y-1.5">
+          <ProgressBar value={execState.progress} color={agent.accentColor} size="sm" showLabel />
+          {execState.text && (
+            <div
+              className="text-[10px] text-slate-400 leading-relaxed max-h-20 overflow-y-auto rounded-lg p-2"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              {execState.text}
+              <span className="inline-block w-1.5 h-3 ml-0.5 rounded-sm animate-pulse" style={{ background: agent.accentColor }} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Progress bar (non-executing running tasks) */}
+      {task.status === 'running' && !execState && (
+        <div className="pl-8 flex items-center gap-2">
+          <Loader2 size={10} className="animate-spin text-blue-400 shrink-0" />
           <ProgressBar value={task.progress} color={agent.accentColor} size="sm" showLabel />
+        </div>
+      )}
+
+      {/* Result toggle for completed tasks */}
+      {task.status === 'done' && savedResult && (
+        <div className="pl-8">
+          <button
+            onClick={() => setResultOpen(o => !o)}
+            className="flex items-center gap-1.5 text-[10px] transition-colors"
+            style={{ color: resultOpen ? agent.accentColor : '#64748b' }}
+          >
+            <FileText size={10} />
+            {resultOpen ? 'Скрыть результат' : 'Результат'}
+            {resultOpen ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
+          </button>
+          <AnimatePresence>
+            {resultOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden mt-1.5"
+              >
+                <div
+                  className="text-[10px] text-slate-300 leading-relaxed max-h-48 overflow-y-auto rounded-lg p-2 whitespace-pre-wrap"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${agent.accentColor}20` }}
+                >
+                  {savedResult}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -627,10 +688,46 @@ function KanbanColumn({ col, tasks, agent, onStatusChange, onDelete, dueDates,
 
 export function AgentTabTasks({ agent }: { agent: Agent }) {
   const { tasks, loading, createTask, updateStatus, deleteTask } = useTasks(agent.id);
+  const { session } = useAuth();
   const [showForm,      setShowForm]      = useState(false);
   const [activeTaskId,  setActiveTaskId]  = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set());
+  const [execMap,       setExecMap]       = useState<Map<string, ExecState>>(new Map());
+
+  async function executeTask(task: Task) {
+    const token = session?.access_token;
+
+    setExecMap(prev => new Map(prev).set(task.id, { text: '', progress: 5 }));
+
+    try {
+      for await (const event of streamTaskExecution(task, token)) {
+        if (event.type === 'chunk') {
+          setExecMap(prev => {
+            const m = new Map(prev);
+            const cur = m.get(task.id) ?? { text: '', progress: 5 };
+            m.set(task.id, { ...cur, text: cur.text + (event.text ?? '') });
+            return m;
+          });
+        } else if (event.type === 'progress') {
+          setExecMap(prev => {
+            const m = new Map(prev);
+            const cur = m.get(task.id) ?? { text: '', progress: 0 };
+            m.set(task.id, { ...cur, progress: event.value ?? cur.progress });
+            return m;
+          });
+        } else if (event.type === 'done') {
+          if (event.result) saveTaskResult(task.id, event.result);
+          setExecMap(prev => { const m = new Map(prev); m.delete(task.id); return m; });
+        } else if (event.type === 'error') {
+          console.error('[executeTask]', event.message);
+          setExecMap(prev => { const m = new Map(prev); m.delete(task.id); return m; });
+        }
+      }
+    } catch {
+      setExecMap(prev => { const m = new Map(prev); m.delete(task.id); return m; });
+    }
+  }
 
   const toggleSelect = (id: string) =>
     setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -692,7 +789,10 @@ export function AgentTabTasks({ agent }: { agent: Agent }) {
     mins?: number, dueDate?: string,
   ) => {
     const task = await createTask({ agentId: agent.id, title, description, priority, estimatedMinutes: mins });
-    if (task && dueDate) saveDueDate(task.id, dueDate);
+    if (!task) return;
+    if (dueDate) saveDueDate(task.id, dueDate);
+    // Auto-execute: fire-and-forget (runs in background while user continues)
+    executeTask(task);
   };
 
   const handleDelete = (id: string) => {
@@ -755,6 +855,7 @@ export function AgentTabTasks({ agent }: { agent: Agent }) {
       </AnimatePresence>
 
       {/* Kanban columns */}
+      <ExecContext.Provider value={execMap}>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -792,6 +893,7 @@ export function AgentTabTasks({ agent }: { agent: Agent }) {
           )}
         </DragOverlay>
       </DndContext>
+      </ExecContext.Provider>
 
       {/* ── Bulk-action floating bar ──────────────────────────────────────── */}
       <AnimatePresence>
